@@ -80,7 +80,7 @@
 					//console.log(response)
 					var arr = response.result.split("@");
 					E("filebrowser_status").innerHTML = arr[0];
-					$("#fileb").html("<a type='button' href='http://"+ arr[1] + ":"+arr[2]+"' target='_blank' >访问 FileBrowser</a>");
+					$("#fileb").html("<a type='button' href='http://"+ location.hostname + ":"+arr[2]+"' target='_blank' >访问 FileBrowser</a>");
 				
 					setTimeout("check_status();", 10000);
 				},
