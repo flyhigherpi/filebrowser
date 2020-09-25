@@ -28,44 +28,33 @@ _get_type() {
 }
 
 exit_install(){
-	local state=$1
-	case $state in
-		1)
-			echo_date "本插件适用于适用于【koolshare 梅林改/官改 hnd/axhnd/axhnd.675x/armv7l 384】固件平台，你的固件平台不能安装！！！"
-			echo_date "本插件支持机型/平台：https://github.com/koolshare/rogsoft#rogsoft"
-			echo_date "退出安装！"
-			rm -rf /tmp/${module}* >/dev/null 2>&1
-			exit 1
-			;;
-		0|*)
-			rm -rf /tmp/${module}* >/dev/null 2>&1
-			exit 0
-			;;
-	esac
+	echo_date fancyss_hnd适用于【koolshare 梅林改/官改 hnd/axhnd/axhnd.675x】固件平台，你的固件平台不能安装！！！
+	echo_date fancyss_hnd支持机型/平台：https://github.com/hq450/fancyss#fancyss_hnd
+	echo_date 退出安装！
+	rm -rf /tmp/shadowsocks* >/dev/null 2>&1
+	exit 1
 }
 
 # 判断路由架构和平台
 case $(uname -m) in
 	aarch64)
-		if [ "$(uname -o|grep Merlin)" -a -d "/koolshare" ];then
+		# cpu架构为armv8，koolshare 官改/梅林改固件可以安装
+		if [ "$(uname -o|grep Merlin)" ] && [ -d "/koolshare" ];then
 			echo_date 机型：$MODEL $(_get_type) 符合安装要求，开始安装插件！
 		else
-			exit_install 1
+			exit_install
 		fi
 		;;
 	armv7l)
-		if [ "`uname -o|grep Merlin`" ] && [ -d "/koolshare" ] && [ -n "`nvram get buildno|grep 384`" ];then
-			echo_date 固件平台【koolshare merlin armv7l 384】符合安装要求，开始安装插件！
-		elif [ "$MODEL" == "TUF-AX3000" -o "$MODEL" == "RT-AX82U" -o "$MODEL" == "RT-AX95Q" -o "$MODEL" == "RT-AX56_XD4" ] && [ -d "/koolshare" ];then
+		# cpu架构为armv7，TUF-AX3000，RT-AX82U官改固件可以安装
+		if [ "$MODEL" == "TUF-AX3000" -o "$MODEL" == "RT-AX82U" -o "$MODEL" == "RT-AX95Q" -o "$MODEL" == "RT-AX56_XD4" ] && [ -d "/koolshare" ];then
 			echo_date 机型：$MODEL $(_get_type) 符合安装要求，开始安装插件！
 		else
-			echo_date 本插件适用于【koolshare merlin armv7l 384】固件平台，你的固件平台不能安装！！！
-			echo_date 退出安装！
-			exit_install 1
+			exit_install
 		fi
 		;;
 	*)
-		exit_install 1
+		exit_install
 	;;
 esac
 
