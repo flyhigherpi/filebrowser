@@ -13,7 +13,7 @@ sleep 2s
 _get_type() {
 	local FWTYPE=$(nvram get extendno|grep koolshare)
 	if [ -d "/koolshare" ];then
-		if [ -n $FWTYPE ];then
+		if [ -n ${FWTYPE} ];then
 			echo "koolshare官改固件"
 		else
 			echo "koolshare梅林改版固件"
@@ -47,7 +47,7 @@ case $(uname -m) in
 		;;
 	armv7l)
 		# cpu架构为armv7，TUF-AX3000，RT-AX82U官改固件可以安装
-		if [ "$MODEL" == "TUF-AX3000" -o "$MODEL" == "RT-AX82U" -o "$MODEL" == "RT-AX95Q" -o "$MODEL" == "RT-AX56_XD4" ] && [ -d "/koolshare" ];then
+		if [ "$MODEL" == "TUF-AX3000" -o "$MODEL" == "RT-AX82U" -o "$MODEL" == "RT-AX95Q" -o "$MODEL" == "RT-AX56_XD4" -o "$MODEL" == "RT-AX89U" ] && [ -d "/koolshare" ];then
 			echo_date 机型：$MODEL $(_get_type) 符合安装要求，开始安装插件！
 		else
 			exit_install
