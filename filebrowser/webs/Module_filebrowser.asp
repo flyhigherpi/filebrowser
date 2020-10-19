@@ -21,48 +21,6 @@
     <script type="text/javascript" src="/js/jquery.js"></script>
     <script type="text/javascript" src="/switcherplugin/jquery.iphone-switch.js"></script>
     <script type="text/javascript" src="/res/softcenter.js"></script>
-    <style type="text/css">
-        .rog_btn {
-            border: 1px solid #222;
-            background: linear-gradient(to bottom, #003333 0%, #000000 100%); /* W3C */
-            font-size: 10pt;
-            color: #fff;
-            padding: 5px 5px;
-            border-radius: 5px 5px 5px 5px;
-            width: 14%;
-        }
-
-            .rog_btn:hover {
-                border: 1px solid #222;
-                background: linear-gradient(to bottom, #27c9c9 0%, #279fd9 100%); /* W3C */
-                font-size: 10pt;
-                color: #fff;
-                padding: 5px 5px;
-                border-radius: 5px 5px 5px 5px;
-                width: 14%;
-            }
-
-        .loading_bar {
-            width: 250px;
-            border: 0px;
-        }
-
-            .loading_bar > div {
-                margin-left: -10px;
-                background-color: white;
-                border-radius: 7px;
-                padding: 1px;
-            }
-
-        .status_bar {
-            height: 18px;
-            border-radius: 7px;
-        }
-
-        #ram_bar {
-            background-color: #0096FF;
-        }
-    </style>
     <script type="text/javascript">
         var db_filebrowser = {}
 		function E(e) {
@@ -294,9 +252,9 @@
                                             <tr id="filebrowser_tr">
                                                 <th>开关</th>
                                                 <td>
-													<button id="btn_Start" class="rog_btn" style="width: 110px; cursor: pointer; float: left; ">开启</button>
+													<button id="btn_Start" class="ks_btn" style="width: 110px; cursor: pointer; float: left; ">开启</button>
 
-                                                    <button id="btn_Close" class="rog_btn" style="width: 110px; cursor: pointer; float: left; margin-left: 5px;">关闭</button>
+                                                    <button id="btn_Close" class="ks_btn" style="width: 110px; cursor: pointer; float: left; margin-left: 5px;">关闭</button>
                                                     
                                                 </td>
                                             </tr>
@@ -314,7 +272,7 @@
 											<tr>
 												<th >访问</th>
 												<td colspan="2"  id="filebrowser_access">
-													<a type="button" style="vertical-align: middle; cursor:pointer;" id="fileb" class="rog_btn" target="_blank" >访问 FileBrowser</a>					
+													<a type="button" style="vertical-align: middle; cursor:pointer;" id="fileb" class="ks_btn" target="_blank" >访问 FileBrowser</a>					
 												</td>
 											</tr>
 										</table>
@@ -385,7 +343,7 @@
                                             <tr>
                                                 <th id="btn-open-clash-dashboard" class="btn btn-primary">备份数据库</th>
                                                 <td colspan="2">
-                                                    <a type="button" style="vertical-align: middle; cursor:pointer;" id="database-btn-download" class="rog_btn" onclick="down_database()" >导出数据库</a>
+                                                    <a type="button" style="vertical-align: middle; cursor:pointer;" id="database-btn-download" class="ks_btn" onclick="down_database()" >导出数据库</a>
                                                 </td>
                                             </tr>
                                             <tr>
@@ -394,7 +352,7 @@
                                                 <div class="SimpleNote" style="display:table-cell;float: left; height: 110px; line-height: 110px; margin:-40px 0;">
                                                     <input type="file" style="width: 200px;margin: 0,0,0,0px;" id="database" size="50" name="file"/>
                                                     <span id="database_info" style="display:none;">完成</span>															
-                                                    <a type="button" style="vertical-align: middle; cursor:pointer;" id="database-btn-upload" class="rog_btn" onclick="upload_database()" >恢复数据库</a>
+                                                    <a type="button" style="vertical-align: middle; cursor:pointer;" id="database-btn-upload" class="ks_btn" onclick="upload_database()" >恢复数据库</a>
                                                 </div>
                                             </td>
                                             </tr>														

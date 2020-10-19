@@ -1,19 +1,23 @@
 #! /bin/sh
 
-# shadowsocks script for HND/AXHND router with kernel 4.1.27/4.1.51 merlin firmware
+# filebrowser insetall script for hnd/axhnd/axhnd.675x platform router
 
 source /koolshare/scripts/base.sh
 eval $(dbus export filebrowser_)
 alias echo_date='echo 【$(TZ=UTC-8 date -R +%Y年%m月%d日\ %X)】:'
-MODEL=$(nvram get productid)
-
-sleep 2s
+ROG_86U=0
+EXT_NU=$(nvram get extendno)
+EXT_NU=${EXT_NU%_*}
+odmpid=$(nvram get odmpid)
+productid=$(nvram get productid)
+[ -n "${odmpid}" ] && MODEL="${odmpid}" || MODEL="${productid}"
+LINUX_VER=$(uname -r|awk -F"." '{print $1$2}')
 
 # 获取固件类型
 _get_type() {
 	local FWTYPE=$(nvram get extendno|grep koolshare)
 	if [ -d "/koolshare" ];then
-		if [ -n ${FWTYPE} ];then
+		if [ -n $FWTYPE ];then
 			echo "koolshare官改固件"
 		else
 			echo "koolshare梅林改版固件"
@@ -28,52 +32,41 @@ _get_type() {
 }
 
 exit_install(){
-	echo_date fancyss_hnd适用于【koolshare 梅林改/官改 hnd/axhnd/axhnd.675x】固件平台，你的固件平台不能安装！！！
-	echo_date fancyss_hnd支持机型/平台：https://github.com/hq450/fancyss#fancyss_hnd
-	echo_date 退出安装！
-	rm -rf /tmp/shadowsocks* >/dev/null 2>&1
-	exit 1
+	local state=$1
+	case $state in
+		1)
+			echo_date "本插件适用于【koolshare 梅林改/官改 hnd/axhnd/axhnd.675x】固件平台！"
+			echo_date "你的固件平台不能安装！！!"
+			echo_date "本插件支持机型/平台：https://github.com/koolshare/rogsoft#rogsoft"
+			echo_date "退出安装！"
+			rm -rf /tmp/${module}* >/dev/null 2>&1
+			exit 1
+			;;
+		0|*)
+			rm -rf /tmp/${module}* >/dev/null 2>&1
+			exit 0
+			;;
+	esac
 }
 
-# 判断路由架构和平台
-case $(uname -m) in
-	aarch64)
-		# cpu架构为armv8，koolshare 官改/梅林改固件可以安装
-		if [ "$(uname -o|grep Merlin)" ] && [ -d "/koolshare" ];then
-			echo_date 机型：$MODEL $(_get_type) 符合安装要求，开始安装插件！
-		else
-			exit_install
-		fi
-		;;
-	armv7l)
-		# cpu架构为armv7，TUF-AX3000，RT-AX82U官改固件可以安装
-		if [ "$MODEL" == "TUF-AX3000" -o "$MODEL" == "RT-AX82U" -o "$MODEL" == "RT-AX95Q" -o "$MODEL" == "RT-AX56_XD4" -o "$MODEL" == "RT-AX89U" ] && [ -d "/koolshare" ];then
-			echo_date 机型：$MODEL $(_get_type) 符合安装要求，开始安装插件！
-		else
-			exit_install
-		fi
-		;;
-	*)
-		exit_install
-	;;
-esac
+# 判断路由架构和平台：koolshare固件，并且linux版本大于等于4.1
+if [ -d "/koolshare" -a -f "/usr/bin/skipd" -a "${LINUX_VER}" -ge "41" ];then
+	echo_date 机型：${MODEL} $(_get_type) 符合安装要求，开始安装插件！
+else
+	exit_install 1
+fi
 
-
-ROG_86U=0
-EXT_NU=$(nvram get extendno)
-EXT_NU=${EXT_NU%_*}
-
+# 判断固件UI类型
 if [ -n "$(nvram get extendno | grep koolshare)" -a "$(nvram get productid)" == "RT-AC86U" -a "${EXT_NU}" -lt "81918" ];then
 	ROG_86U=1
 fi
 
-# 判断固件需要什么UI
-if [ "$MODEL" == "GT-AC5300" -o "$MODEL" == "GT-AX11000" -o "$ROG_86U" == "1" ];then
+if [ "${MODEL}" == "GT-AC5300" -o "${MODEL}" == "GT-AX11000" -o "${MODEL}" == "GT-AX11000_BO4"  -o "$ROG_86U" == "1" ];then
 	# 官改固件，骚红皮肤
 	ROG=1
 fi
 
-if [ "$MODEL" == "TUF-AX3000" ];then
+if [ "${MODEL}" == "TUF-AX3000" ];then
 	# 官改固件，橙色皮肤
 	TUF=1
 fi
@@ -84,14 +77,12 @@ if [ -n "filebrowser_pid" ];then
 	[ -f "/koolshare/scripts/filebrowser_start.sh" ] && sh /koolshare/scripts/filebrowser_start.sh stop
 fi
 
-
 # 检测储存空间是否足够
 echo_date 检测jffs分区剩余空间...
-SPACE_AVAL=$(df|grep jffs | awk '{print $4}')
+SPACE_AVAL=$(df|grep -w "/jffs" | awk '{print $4}')
 SPACE_NEED=$(du -s /tmp/filebrowser | awk '{print $1}')
 if [ "$SPACE_AVAL" -gt "$SPACE_NEED" ];then
 	echo_date 当前jffs分区剩余"$SPACE_AVAL" KB, 插件安装需要"$SPACE_NEED" KB，空间满足，继续安装！
-	#
 	echo_date 清理旧文件
 	rm -rf /koolshare/scripts/filebrowser_start.sh
 	rm -rf /koolshare/scripts/filebrowser_status.sh
@@ -148,10 +139,7 @@ if [ "$SPACE_AVAL" -gt "$SPACE_NEED" ];then
 
 	echo_date 一点点清理工作...
 	rm -rf /tmp/filebrowser* >/dev/null 2>&1
-
 	echo_date filebrowser插件安装成功！
-	
-
 	echo_date 更新完毕，请等待网页自动刷新！
 else
 	echo_date 当前jffs分区剩余"$SPACE_AVAL" KB, 插件安装需要"$SPACE_NEED" KB，空间不足！
