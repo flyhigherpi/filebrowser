@@ -10,8 +10,8 @@ fi
 find /koolshare/init.d/ -name "*filebrowser*" | xargs rm -rf
 rm -rf /koolshare/bin/filebrowser
 rm -rf /koolshare/bin/filebrowser.db
-rm -rf /tmp/bin/filebrowser
-rm -rf /tmp/bin/filebrowser.db
+rm -rf /tmp/filebrowser/filebrowser
+rm -rf /tmp/filebrowser/filebrowser.db
 rm -rf /tmp/filebrowser.log
 rm -rf /koolshare/res/icon-filebrowser.png
 rm -rf /koolshare/scripts/filebrowser*.sh

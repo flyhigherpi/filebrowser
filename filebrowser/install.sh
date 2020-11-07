@@ -90,8 +90,8 @@ if [ "$SPACE_AVAL" -gt "$SPACE_NEED" ];then
 	rm -rf /koolshare/res/icon-filebrowser.png
 	rm -rf /koolshare/bin/filebrowser
 	rm -rf /koolshare/bin/filebrowser.db
-	rm -rf /tmp/bin/filebrowser
-	rm -rf /tmp/bin/filebrowser.db
+	rm -rf /tmp/filebrowser/filebrowser
+	rm -rf /tmp/filebrowser/filebrowser.db
 	rm -rf /tmp/filebrowser.log
 	find /koolshare/init.d/ -name "*filebrowser.sh" | xargs rm -rf
 
@@ -99,7 +99,7 @@ if [ "$SPACE_AVAL" -gt "$SPACE_NEED" ];then
 	cd /tmp
 
 	echo_date 复制相关二进制文件！此步时间可能较长！
-	cp -rf /tmp/filebrowser/bin/filebrowser /koolshare/bin/
+	cp -rf /tmp/filebrowser/bin/* /koolshare/bin/
 
 	echo_date 复制相关的脚本文件！
 	cp -rf /tmp/filebrowser/scripts/* /koolshare/scripts/
@@ -112,7 +112,7 @@ if [ "$SPACE_AVAL" -gt "$SPACE_NEED" ];then
 
 	echo_date 为新安装文件赋予执行权限...
 	chmod 755 /koolshare/scripts/filebrowser*
-	chmod 755 /koolshare/bin/filebrowser
+	chmod 755 /koolshare/bin/filebrow*
 
 	echo_date 创建一些二进制文件的软链接！
 	[ ! -L "/koolshare/init.d/S99filebrowser.sh" ] && ln -sf /koolshare/scripts/filebrowser_start.sh /koolshare/init.d/S99filebrowser.sh

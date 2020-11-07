@@ -3,11 +3,12 @@
 source /koolshare/scripts/base.sh
 #eval `dbus export filebrowser_`
 alias echo_date='echo 【$(date +%Y年%m月%d日\ %X)】:'
-LOG_FILE="/tmp/filebrowser.log"
+LOG_FILE="/tmp/filebrowser/filebrowser.log"
+mkdir -p /tmp/filebrowser
 rm -rf $LOG_FILE
 lan_ipaddr=$(nvram get lan_ipaddr)
 dbpath=/koolshare/bin/filebrowser.db
-dbpath_tmp=/tmp/bin/filebrowser.db
+dbpath_tmp=/tmp/filebrowser/filebrowser.db
 
 port=$(dbus list filebrowser_port | grep -o "filebrowser_port.*"|awk -F\= '{print $2}')
 #enable=$(dbus list filebrowser_enable | grep -o "filebrowser_enable.*"|awk -F\= '{print $2}')

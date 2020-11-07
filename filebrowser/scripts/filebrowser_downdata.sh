@@ -4,12 +4,12 @@ export KSROOT=/koolshare
 source $KSROOT/scripts/base.sh
 eval $(dbus export filebrowser_)
 alias echo_date='echo 【$(date +%Y年%m月%d日\ %X)】:'
-LOG_FILE="/tmp/filebrowser.log"
+LOG_FILE="/tmp/filebrowser/filebrowser.log"
 
 echo_date "download" >> $LOG_FILE
 echo_date "定位文件" >> $LOG_FILE
 
-dbpath_tmp=/tmp/bin/filebrowser.db
+dbpath_tmp=/tmp/filebrowser/filebrowser.db
 
 tmp_path=/tmp/upload
 rm -rf /tmp/upload/filebrowser.db
