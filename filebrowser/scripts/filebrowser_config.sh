@@ -157,7 +157,6 @@ check_config(){
 	export FB_DATABASE=${dbfile_new}
 	export FB_LOG=${FB_LOG_FILE}
 
-	echo_date "filebrowser_port: ${filebrowser_port}"
 	if [ $(number_test ${filebrowser_port}) != "0" ]; then
 		export FB_PORT=26789
 		dbus set filebrowser_port=26789
