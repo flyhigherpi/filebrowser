@@ -169,7 +169,7 @@ install_now() {
 	dbus set softcenter_module_${module}_description="${DESCR}"
 
 	# 检查插件默认dbus值
-	dbus_nset filebrowser_watchdog "1"
+	dbus_nset filebrowser_watchdog "0"
 	dbus_nset filebrowser_port "26789"
 	dbus_nset filebrowser_cert_file "/etc/cert.pem"
 	dbus_nset filebrowser_key_file "/etc/key.pem"

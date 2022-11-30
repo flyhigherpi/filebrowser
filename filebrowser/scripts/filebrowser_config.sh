@@ -157,11 +157,12 @@ check_config(){
 	export FB_DATABASE=${dbfile_new}
 	export FB_LOG=${FB_LOG_FILE}
 
+	echo_date "filebrowser_port: ${filebrowser_port}"
 	if [ $(number_test ${filebrowser_port}) != "0" ]; then
-		FB_PORT=26789
+		export FB_PORT=26789
 		dbus set filebrowser_port=26789
 	else
-		FB_PORT=${filebrowser_port}
+		export FB_PORT=${filebrowser_port}
 	fi
 
 	if [ "${filebrowser_publicswitch}" == "1" ];then
@@ -170,60 +171,62 @@ check_config(){
 		export FB_ADDRESS=${lan_ipaddr}
 	fi
 
-	if [ "${filebrowser_https}" == "1" ]; then
-		# 1. https开关要打开
-		if [ -n "${filebrowser_cert_file}" -a -n "${filebrowser_key_file}" ]; then
-			# 2. 证书文件路径和密钥文件路径都不能为空
-			if [ -f "${filebrowser_cert_file}" -a -f "${filebrowser_key_file}" ]; then
-				# 3. 证书文件和密钥文件要在路由器内找得到
-				local CER_VERFY=$(openssl x509 -noout -pubkey -in ${filebrowser_cert_file} 2>/dev/null)
-				local KEY_VERFY=$(openssl pkey -pubout -in ${filebrowser_key_file} 2>/dev/null)
-				if [ -n "${CER_VERFY}" -a -n "${KEY_VERFY}" ]; then
-					# 4. 证书文件和密钥文件要是合法的
-					local CER_MD5=$(echo "${CER_VERFY}" | md5sum | awk '{print $1}')
-					local KEY_MD5=$(echo "${KEY_VERFY}" | md5sum | awk '{print $1}')
-					if [ "${CER_MD5}" == "${KEY_MD5}" ]; then
-						# 5. 证书文件和密钥文件还必须得相匹配
-						echo_date "🆗证书校验通过！为filebrowser面板启用https..."
-						export FB_CERT=${filebrowser_cert_file}
-						export FB_KEY=${filebrowser_key_file}
+	if [ "${filebrowser_publicswitch}" == "1" ]; then
+		if [ "${filebrowser_https}" == "1" ]; then
+			# 1. https开关要打开
+			if [ -n "${filebrowser_cert_file}" -a -n "${filebrowser_key_file}" ]; then
+				# 2. 证书文件路径和密钥文件路径都不能为空
+				if [ -f "${filebrowser_cert_file}" -a -f "${filebrowser_key_file}" ]; then
+					# 3. 证书文件和密钥文件要在路由器内找得到
+					local CER_VERFY=$(openssl x509 -noout -pubkey -in ${filebrowser_cert_file} 2>/dev/null)
+					local KEY_VERFY=$(openssl pkey -pubout -in ${filebrowser_key_file} 2>/dev/null)
+					if [ -n "${CER_VERFY}" -a -n "${KEY_VERFY}" ]; then
+						# 4. 证书文件和密钥文件要是合法的
+						local CER_MD5=$(echo "${CER_VERFY}" | md5sum | awk '{print $1}')
+						local KEY_MD5=$(echo "${KEY_VERFY}" | md5sum | awk '{print $1}')
+						if [ "${CER_MD5}" == "${KEY_MD5}" ]; then
+							# 5. 证书文件和密钥文件还必须得相匹配
+							echo_date "🆗证书校验通过！为filebrowser面板启用https..."
+							export FB_CERT=${filebrowser_cert_file}
+							export FB_KEY=${filebrowser_key_file}
+						else
+							echo_date "⚠️无法启用https，原因如下："
+							echo_date "⚠️证书公钥:${filebrowser_cert_file} 和证书私钥: ${filebrowser_key_file}不匹配！"
+							dbus set filebrowser_cert_error=1
+							dbus set filebrowser_key_error=1
+						fi
 					else
 						echo_date "⚠️无法启用https，原因如下："
-						echo_date "⚠️证书公钥:${filebrowser_cert_file} 和证书私钥: ${filebrowser_key_file}不匹配！"
-						dbus set filebrowser_cert_error=1
-						dbus set filebrowser_key_error=1
+						if [ -z "${CER_VERFY}" ]; then
+							echo_date "⚠️证书公钥Cert文件错误，检测到这不是公钥文件！"
+							dbus set filebrowser_cert_error=1
+						fi
+						if [ -z "${KEY_VERFY}" ]; then
+							echo_date "⚠️证书私钥Key文件错误，检测到这不是私钥文件！"
+							dbus set filebrowser_key_error=1
+						fi
 					fi
 				else
 					echo_date "⚠️无法启用https，原因如下："
-					if [ -z "${CER_VERFY}" ]; then
-						echo_date "⚠️证书公钥Cert文件错误，检测到这不是公钥文件！"
+					if [ ! -f "${filebrowser_cert_file}" ]; then
+						echo_date "⚠️未找到证书公钥Cert文件！"
 						dbus set filebrowser_cert_error=1
 					fi
-					if [ -z "${KEY_VERFY}" ]; then
-						echo_date "⚠️证书私钥Key文件错误，检测到这不是私钥文件！"
+					if [ ! -f "${filebrowser_key_file}" ]; then
+						echo_date "⚠️未找到证书私钥Key文件！"
 						dbus set filebrowser_key_error=1
 					fi
 				fi
 			else
 				echo_date "⚠️无法启用https，原因如下："
-				if [ ! -f "${filebrowser_cert_file}" ]; then
-					echo_date "⚠️未找到证书公钥Cert文件！"
+				if [ -z "${filebrowser_cert_file}" ]; then
+					echo_date "⚠️证书公钥Cert文件路径未配置！"
 					dbus set filebrowser_cert_error=1
 				fi
-				if [ ! -f "${filebrowser_key_file}" ]; then
-					echo_date "⚠️未找到证书私钥Key文件！"
+				if [ -z "${filebrowser_key_file}" ]; then
+					echo_date "⚠️证书私钥Key文件路径未配置！"
 					dbus set filebrowser_key_error=1
 				fi
-			fi
-		else
-			echo_date "⚠️无法启用https，原因如下："
-			if [ -z "${filebrowser_cert_file}" ]; then
-				echo_date "⚠️证书公钥Cert文件路径未配置！"
-				dbus set filebrowser_cert_error=1
-			fi
-			if [ -z "${filebrowser_key_file}" ]; then
-				echo_date "⚠️证书私钥Key文件路径未配置！"
-				dbus set filebrowser_key_error=1
 			fi
 		fi
 	fi
@@ -281,7 +284,7 @@ start_fb (){
 
 	# 5. open port
 	if [ "${filebrowser_publicswitch}" == "1" ];then
-		close_port >/dev/null 2>/dev/null
+		close_port >/dev/null 2>&1
 		open_port
 	fi
 }
@@ -312,14 +315,14 @@ download_database(){
 	
 	tmp_path=/tmp/files
 	
-	cp -rf ${dbfile_new} ${tmp_path}/filebrowser.db
+	cp -rf ${dbfile_new} /tmp/files/filebrowser.db
 	
-	if [ -f ${tmp_path}/filebrowser.db ]; then
-		http_response "$ID" >/dev/null 2>&1
+	if [ -f /tmp/files/filebrowser.db ]; then
 		echo_date "文件已复制"
+		http_response "$ID" >/dev/null 2>&1
 	else
-	    echo_date "文件复制失败"
-	    http_response "fail" >/dev/null 2>&1
+		http_response "fail" >/dev/null 2>&1
+		echo_date "文件复制失败"
 	fi
 }
 

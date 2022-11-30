@@ -1,5 +1,10 @@
 KoolCenter FileBrower Changelog for HND platform
 ===========================================
+2.0.1
+   - fix	修复不开守护的情况下，更改端口无法访问filebrower的问题
+   - fix	数据库备份/还原窗口位置问题
+   - fix	修复数据库备份下载文件失败的问题
+
 2.0.0
    - update	优化插件web和脚本
    - update	更新filebrower 二进制程序到 2.23.0

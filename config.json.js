@@ -1,11 +1,11 @@
 {
-	"description": "FileBrowser：您的可视化路由文件管理系统", 
-	"home_url": "Module_filebrowser.asp", 
-	"md5": "916535afdf85dbb875c9b09c710044b1", 
-	"module": "filebrowser", 
-	"title": "FileBrowser", 
-	"tags":"USB",
-	"author":"MAN KAI, sadog",
-	"link":"https://github.com/flyhigherpi/filebrowser",
-	"version": "2.0.0"
+    "author": "MAN KAI, sadog", 
+    "description": "FileBrowser：您的可视化路由文件管理系统", 
+    "home_url": "Module_filebrowser.asp", 
+    "link": "https://github.com/flyhigherpi/filebrowser", 
+    "md5": "737b0333a3a00bb38153c59f3ae96a45", 
+    "module": "filebrowser", 
+    "tags": "USB", 
+    "title": "FileBrowser", 
+    "version": "2.0.1"
 }

@@ -421,7 +421,7 @@ function database_mission() {
 	E("fb_db_settings").style.visibility = "visible";
 	var page_h = window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight;
 	var page_w = window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth;
-	var _h = E("fb_db_settings").clientHeight;
+	var fb_h = E("fb_db_settings").clientHeight;
 	var fb_w = E("fb_db_settings").clientWidth;
 	var fb_h_offset = (page_h - fb_h) / 2 - 90;
 	var fb_w_offset = (page_w - fb_w) / 2 + 90;
@@ -447,26 +447,24 @@ function down_database() {
 		success: function(response){
 			if(response.result == id){
 				get_log();
-				var downloadA = document.createElement('a');
-				var josnData = {};
-				var a = "http://"+window.location.hostname+"/_temp/"+"filebrowser.db"
-				var blob = new Blob([JSON.stringify(josnData)],{type : 'application/json'});
-				downloadA.href = a;
-				downloadA.download = "filebrowser.db";
-				downloadA.click();
-				window.URL.revokeObjectURL(downloadA.href);
+				var a = document.createElement('A');
+				a.href = "_root/files/filebrowser.db";
+				a.download = 'filebrowser.db';
+				document.body.appendChild(a);
+				a.click();
+				document.body.removeChild(a);
 				count_down = -1;
 			}
 		}
 	});	
 }
+
 function upload_database() {
 	var filename = $("#database").val();
 	filename = filename.split('\\');
 	filename = filename[filename.length - 1];
 	var filelast = filename.split('.');
 	filelast = filelast[filelast.length - 1];
-	//alert(filename);
 	if (filelast != "db") {
 		alert('上传文件格式非法！只支持上传db后缀的数据库文件');
 		return false;
