@@ -1,0 +1,7 @@
+KoolCenter FileBrower Changelog for HND platform
+===========================================
+2.0.0
+   - update	优化插件web和脚本
+   - update	更新filebrower 二进制程序到 2.23.0
+   - update	看门狗升级为perp实时进程守护
+   - update	现在插件运行时，数据库不在放在/tmp

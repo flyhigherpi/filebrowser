@@ -1,35 +1,73 @@
 #!/bin/sh
-
-# filebrowser insetall script for hnd/axhnd/axhnd.675x platform router
-
 source /koolshare/scripts/base.sh
-eval $(dbus export filebrowser_)
 alias echo_date='echo 【$(TZ=UTC-8 date -R +%Y年%m月%d日\ %X)】:'
-ROG_86U=0
-BUILDNO=$(nvram get buildno)
-EXT_NU=$(nvram get extendno)
-EXT_NU=$(echo ${EXT_NU%_*} | grep -Eo "^[0-9]{1,10}$")
-[ -z "${EXT_NU}" ] && EXT_NU="0"
-odmpid=$(nvram get odmpid)
-productid=$(nvram get productid)
-[ -n "${odmpid}" ] && MODEL="${odmpid}" || MODEL="${productid}"
-LINUX_VER=$(uname -r|awk -F"." '{print $1$2}')
+MODEL=
+FW_TYPE_CODE=
+FW_TYPE_NAME=
+DIR=$(cd $(dirname $0); pwd)
+module=${DIR##*/}
 
-# 获取固件类型
-_get_type() {
-	local FWTYPE=$(nvram get extendno|grep koolshare)
+get_model(){
+	local ODMPID=$(nvram get odmpid)
+	local PRODUCTID=$(nvram get productid)
+	if [ -n "${ODMPID}" ];then
+		MODEL="${ODMPID}"
+	else
+		MODEL="${PRODUCTID}"
+	fi
+}
+
+get_fw_type() {
+	local KS_TAG=$(nvram get extendno|grep -Eo "kool.+")
 	if [ -d "/koolshare" ];then
-		if [ -n "${FWTYPE}" ];then
-			echo "koolshare官改固件"
+		if [ -n "${KS_TAG}" ];then
+			FW_TYPE_CODE="2"
+			FW_TYPE_NAME="${KS_TAG}官改固件"
 		else
-			echo "koolshare梅林改版固件"
+			FW_TYPE_CODE="4"
+			FW_TYPE_NAME="koolshare梅林改版固件"
 		fi
 	else
 		if [ "$(uname -o|grep Merlin)" ];then
-			echo "梅林原版固件"
+			FW_TYPE_CODE="3"
+			FW_TYPE_NAME="梅林原版固件"
 		else
-			echo "华硕官方固件"
+			FW_TYPE_CODE="1"
+			FW_TYPE_NAME="华硕官方固件"
 		fi
+	fi
+}
+
+platform_test(){
+	local LINUX_VER=$(uname -r|awk -F"." '{print $1$2}')
+	local ARCH=$(uname -m)
+	if [ -d "/koolshare" -a -f "/usr/bin/skipd" -a "${LINUX_VER}" -ge "41" ];then
+		if [ "${ARCH}" != "aarch64" ];then
+			exit_install 2
+		else
+			echo_date 机型："${MODEL} ${FW_TYPE_NAME} 符合安装要求，开始安装插件！"
+		fi
+	else
+		exit_install 1
+	fi
+}
+
+set_skin(){
+	local UI_TYPE=ASUSWRT
+	local SC_SKIN=$(nvram get sc_skin)
+	local ROG_FLAG=$(grep -o "680516" /www/form_style.css|head -n1)
+	local TUF_FLAG=$(grep -o "D0982C" /www/form_style.css|head -n1)
+	if [ -n "${ROG_FLAG}" ];then
+		UI_TYPE="ROG"
+	fi
+	if [ -n "${TUF_FLAG}" ];then
+		UI_TYPE="TUF"
+	fi
+	
+	if [ -z "${SC_SKIN}" -o "${SC_SKIN}" != "${UI_TYPE}" ];then
+		echo_date "安装${UI_TYPE}皮肤！"
+		nvram set sc_skin="${UI_TYPE}"
+		nvram commit
 	fi
 }
 
@@ -41,110 +79,117 @@ exit_install(){
 			echo_date "你的固件平台不能安装！！!"
 			echo_date "本插件支持机型/平台：https://github.com/koolshare/rogsoft#rogsoft"
 			echo_date "退出安装！"
-			rm -rf /tmp/${module}* >/dev/null 2>&1
+			rm -rf /tmp/filebrowser* >/dev/null 2>&1
 			exit 1
 			;;
 		0|*)
-			rm -rf /tmp/${module}* >/dev/null 2>&1
+			rm -rf /tmp/filebrowser* >/dev/null 2>&1
 			exit 0
 			;;
 	esac
 }
 
-# 判断路由架构和平台：koolshare固件，并且linux版本大于等于4.1
-if [ -d "/koolshare" -a -f "/usr/bin/skipd" -a "${LINUX_VER}" -ge "41" ];then
-	echo_date 机型：${MODEL} $(_get_type) 符合安装要求，开始安装插件！
-else
-	exit_install 1
-fi
+dbus_nset(){
+	# set key when value not exist
+	local ret=$(dbus get $1)
+	if [ -z "${ret}" ];then
+		dbus set $1=$2
+	fi
+}
 
-# 判断固件UI类型
-if [ -n "$(nvram get extendno | grep koolshare)" -a "$(nvram get productid)" == "RT-AC86U" -a "${EXT_NU}" -lt "81918" -a "${BUILDNO}" != "386" ];then
-	ROG_86U=1
-fi
+install_now() {
+	# default value
+	local TITLE="FileBrowser"
+	local DESCR="FileBrowser：您的可视化路由文件管理系统"
+	local PLVER=$(cat ${DIR}/version)
 
-if [ "${MODEL}" == "GT-AC5300" -o "${MODEL}" == "GT-AX11000" -o "${MODEL}" == "GT-AX11000_BO4"  -o "$ROG_86U" == "1" ];then
-	# 官改固件，骚红皮肤
-	ROG=1
-fi
+	# delete crontabs job first
+	if [ -n "$(cru l | grep filebrowser_watchdog)" ]; then
+		echo_date "删除filebrowser看门狗任务..."
+		sed -i '/filebrowser_watchdog/d' /var/spool/cron/crontabs/* >/dev/null 2>&1
+	fi
+	if [ -n "$(cru l | grep filebrowser_backupdb)" ]; then
+		echo_date "删除filebrowser数据库备份任务..."
+		sed -i '/filebrowser_backupdb/d' /var/spool/cron/crontabs/* >/dev/null 2>&1
+	fi
 
-if [ "${MODEL}" == "TUF-AX3000" ];then
-	# 官改固件，橙色皮肤
-	TUF=1
-fi
+	# stop signdog
+	local fb_enable=$(dbus get filebrowser_enable)
+	local fb_process=$(pidof filebrowser)
+	if [ "${fb_enable}" == "1" -o -n "${fb_process}" ];then
+		local enable="1"
+		dbus set filebrowser_enable="1"
+		echo_date "先关闭filebrowser插件！以保证更新成功！"
+		killall filebrowser >/dev/null 2>&1
+	fi
 
-filebrowser_pid=$(pidof filebrowser)
-if [ -n "filebrowser_pid" ];then
-	echo_date 先关闭filebrowser，保证文件更新成功!
-	[ -f "/koolshare/scripts/filebrowser_start.sh" ] && sh /koolshare/scripts/filebrowser_start.sh stop
-fi
-
-# 检测储存空间是否足够
-echo_date 检测jffs分区剩余空间...
-SPACE_AVAL=$(df|grep -w "/jffs" | awk '{print $4}')
-SPACE_NEED=$(du -s /tmp/filebrowser | awk '{print $1}')
-if [ "$SPACE_AVAL" -gt "$SPACE_NEED" ];then
-	echo_date 当前jffs分区剩余"$SPACE_AVAL" KB, 插件安装需要"$SPACE_NEED" KB，空间满足，继续安装！
-	echo_date 清理旧文件
-	rm -rf /koolshare/scripts/filebrowser_start.sh
-	rm -rf /koolshare/scripts/filebrowser_status.sh
-	rm -rf /koolshare/webs/Module_filebrowser*
-	rm -rf /koolshare/res/icon-filebrowser.png
-	rm -rf /koolshare/bin/filebrowser
-	rm -rf /koolshare/bin/filebrowser.db
-	rm -rf /tmp/filebrowser/filebrowser
-	rm -rf /tmp/filebrowser/filebrowser.db
-	rm -rf /tmp/filebrowser.log
-	find /koolshare/init.d/ -name "*filebrowser.sh" | xargs rm -rf
-
-	echo_date 开始复制文件！
-	cd /tmp
-
-	echo_date 复制相关二进制文件！此步时间可能较长！
-	cp -rf /tmp/filebrowser/bin/* /koolshare/bin/
-
-	echo_date 复制相关的脚本文件！
-	cp -rf /tmp/filebrowser/scripts/* /koolshare/scripts/
-	cp -rf /tmp/filebrowser/install.sh /koolshare/scripts/filebrowser_install.sh
-	cp -rf /tmp/filebrowser/uninstall.sh /koolshare/scripts/uninstall_filebrowser.sh
-
-	echo_date 复制相关的网页文件！
-	cp -rf /tmp/filebrowser/webs/* /koolshare/webs/
-	cp -rf /tmp/filebrowser/res/* /koolshare/res/
-
-	echo_date 为新安装文件赋予执行权限...
-	chmod 755 /koolshare/scripts/filebrowser*
-	chmod 755 /koolshare/bin/filebrow*
-
-	echo_date 创建一些二进制文件的软链接！
-	[ ! -L "/koolshare/init.d/S99filebrowser.sh" ] && ln -sf /koolshare/scripts/filebrowser_start.sh /koolshare/init.d/S99filebrowser.sh
+	# migrate db
+	mkdir -p /koolshare/configs/filebrowser
+	local dbfile_tmp=/tmp/filebrowser/filebrowser.db
+	local dbfile_new=/koolshare/configs/filebrowser/filebrowser.db
+	if [ -f "${dbfile_tmp}" -a ! -f "${dbfile_new}" ];then
+		cp -rf ${dbfile_tmp} ${dbfile_new}
+	fi
 	
-	# 离线安装时设置软件中心内储存的版本号和连接
-	echo_date 清除冗余数据
-	dbus remove filebrowser_version_local
-	dbus remove filebrowser_watchdog
-	dbus remove filebrowser_port
-	dbus remove filebrowser_publicswitch
-	dbus remove filebrowser_delay_time
-	dbus remove filebrowser_uploaddatabase
-	dbus remove softcenter_module_filebrowser_install
-	dbus remove softcenter_module_filebrowser_version
-	dbus remove softcenter_module_filebrowser_title
-	dbus remove softcenter_module_filebrowser_description
-	echo_date 设置初始值
-	CUR_VERSION=$(cat /tmp/filebrowser/version)
-	dbus set filebrowser_version_local="$CUR_VERSION"
-	dbus set softcenter_module_filebrowser_install="1"
-	dbus set softcenter_module_filebrowser_version="$CUR_VERSION"
-	dbus set softcenter_module_filebrowser_title="FileBrowser"
-	dbus set softcenter_module_filebrowser_description="FileBrowser：您的可视化路由文件管理系统"
+	# remove some files first, old file should be removed, too
+	find /koolshare/init.d/ -name "*filebrowser*" | xargs rm -rf
+	rm -rf /koolshare/scripts/filebrowser*.sh 2>/dev/null
+	rm -rf /koolshare/scripts/*filebrowser.sh 2>/dev/null
+	rm -rf /koolshare/filebrowser 2>/dev/null
+	rm -rf /koolshare/bin/filebrowser 2>/dev/null
+	rm -rf /koolshare/bin/filebrowser.db 2>/dev/null
 
-	echo_date 一点点清理工作...
-	rm -rf /tmp/filebrowser* >/dev/null 2>&1
-	echo_date filebrowser插件安装成功！
-	echo_date 更新完毕，请等待网页自动刷新！
-else
-	echo_date 当前jffs分区剩余"$SPACE_AVAL" KB, 插件安装需要"$SPACE_NEED" KB，空间不足！
-	echo_date 退出安装！
-	exit 1
-fi
+	# remove old value
+	dbus remove filebrowser_delay_time
+	dbus remove filebrowser_version_local
+
+	# isntall file
+	echo_date "安装插件相关文件..."
+	cp -rf /tmp/${module}/bin/* /koolshare/bin/
+	cp -rf /tmp/${module}/res/* /koolshare/res/
+	cp -rf /tmp/${module}/scripts/* /koolshare/scripts/
+	cp -rf /tmp/${module}/webs/* /koolshare/webs/
+	cp -rf /tmp/${module}/uninstall.sh /koolshare/scripts/uninstall_${module}.sh
+	
+	#创建开机自启任务
+	[ ! -L "/koolshare/init.d/S99filebrowser.sh" ] && ln -sf /koolshare/scripts/filebrowser_config.sh /koolshare/init.d/S99filebrowser.sh
+	[ ! -L "/koolshare/init.d/N99filebrowser.sh" ] && ln -sf /koolshare/scripts/filebrowser_config.sh /koolshare/init.d/N99filebrowser.sh
+
+	# Permissions
+	chmod +x /koolshare/scripts/filebrowser* >/dev/null 2>&1
+	chmod +x /koolshare/bin/filebrowser >/dev/null 2>&1
+
+	# dbus value
+	echo_date "设置插件默认参数..."
+	dbus set ${module}_version="${PLVER}"
+	dbus set softcenter_module_${module}_version="${PLVER}"
+	dbus set softcenter_module_${module}_install="1"
+	dbus set softcenter_module_${module}_name="${module}"
+	dbus set softcenter_module_${module}_title="${TITLE}"
+	dbus set softcenter_module_${module}_description="${DESCR}"
+
+	# 检查插件默认dbus值
+	dbus_nset filebrowser_watchdog "1"
+	dbus_nset filebrowser_port "26789"
+	dbus_nset filebrowser_cert_file "/etc/cert.pem"
+	dbus_nset filebrowser_key_file "/etc/key.pem"
+
+	# re_enable
+	if [ "${enable}" == "1" ];then
+		echo_date "重新启动filebrowser插件！"
+		sh /koolshare/scripts/filebrowser_config.sh boot_up
+	fi
+
+	# finish
+	echo_date "${TITLE}插件安装完毕！"
+	exit_install
+}
+
+install() {
+  get_model
+  get_fw_type
+  platform_test
+  install_now
+}
+
+install
