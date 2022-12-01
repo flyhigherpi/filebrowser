@@ -5,7 +5,8 @@ eval $(dbus export filebrowser_)
 alias echo_date='echo 【$(TZ=UTC-8 date -R +%Y年%m月%d日\ %X)】:'
 LOG_FILE=/tmp/upload/filebrowser_log.txt
 FB_LOG_FILE=/tmp/upload/filebrowser.log
-dbfile_new=/koolshare/configs/filebrowser/filebrowser.db
+dbfile_save=/koolshare/configs/filebrowser/filebrowser.db
+dbfile_curr=/tmp/fb/filebrowser.db
 LOCK_FILE=/var/lock/filebrowser.lock
 BASH=${0##*/}
 ARGS=$@
@@ -111,6 +112,14 @@ close_fb_process(){
 		kill -9 "${fb_process}" >/dev/null 2>&1
 		kill_cron_job
 	fi
+
+	# sync db
+	if [ -f "${dbfile_curr}" ];then
+		cp -rf ${dbfile_curr} ${dbfile_save}
+		if [ "$?" == "0" ];then
+			rm -rf /tmp/fb
+		fi
+	fi
 }
 
 start_fb_process(){
@@ -152,9 +161,17 @@ start_fb_process(){
 check_config(){
 	lan_ipaddr=$(ifconfig br0|grep -Eo "inet addr.+"|awk -F ":| " '{print $3}' 2>/dev/null)
 	mkdir -p /koolshare/configs/filebrowser
+	mkdir -p /tmp/fb
+
+	dbfile_save=/koolshare/configs/filebrowser/filebrowser.db
+	dbfile_curr=/tmp/fb/filebrowser.db
+
+	if [ -f "${dbfile_save}" ];then
+		cp -rf ${dbfile_save} ${dbfile_curr}
+	fi
 
 	export FB_ROOT="/"
-	export FB_DATABASE=${dbfile_new}
+	export FB_DATABASE=${dbfile_curr}
 	export FB_LOG=${FB_LOG_FILE}
 
 	if [ $(number_test ${filebrowser_port}) != "0" ]; then
@@ -257,6 +274,36 @@ close_port(){
 	fi
 }
 
+write_backup_job(){
+	sed -i '/filebrowser_backupdb/d' /var/spool/cron/crontabs/* >/dev/null 2>&1
+	echo_date "ℹ️创建数据库备份任务" >> $LOG_FILE
+	cru a filebrowser_backupdb  "*/1 * * * * /bin/sh /koolshare/scripts/filebrowser_config.sh backup"
+}
+
+kill_cron_job() {
+	if [ -n "$(cru l | grep filebrowser_backupdb)" ]; then
+		echo_date "ℹ️删除filebrowser数据库备份任务..."
+		sed -i '/filebrowser_backupdb/d' /var/spool/cron/crontabs/* >/dev/null 2>&1
+	fi
+}
+
+start_backup(){
+	mkdir -p /koolshare/configs/
+	if [ -f "${dbfile_curr}" ]; then
+		if [ ! -f "${dbfile_save}" ]; then
+		    cp -rf ${dbpath_tmp} ${dbfile_save}
+		    logger "[${0##*/}]：备份filebrowser数据库!"
+		else
+			local new=$(md5sum ${dbfile_curr} | awk '{print $1}')
+			local old=$(md5sum ${dbfile_save} | awk '{print $1}') 
+			if [ "${new}" != "${old}" ] ; then
+			    cp -rf ${dbfile_curr} ${dbfile_save}
+			    logger "[${0##*/}]：filebrowser 数据库变化，备份数据库!"
+			fi
+		fi
+	fi
+}
+
 close_fb(){
 	# 1. remove log
 	rf -rf ${FB_LOG_FILE}
@@ -264,7 +311,10 @@ close_fb(){
 	# 2. stop fb
 	close_fb_process
 
-	# 3. close_port
+	# 3. kill_cron_job
+	kill_cron_job
+
+	# 4. close_port
 	close_port
 }
 
@@ -281,6 +331,9 @@ start_fb (){
 	# 4. start process
 	start_fb_process
 
+	# 5. sync db by crontab
+	write_backup_job
+
 	# 5. open port
 	if [ "${filebrowser_publicswitch}" == "1" ];then
 		close_port >/dev/null 2>&1
@@ -295,7 +348,7 @@ upload_database(){
 		close_fb_process
 		mkdir -p /koolshare/configs/filebrowser
 		rm -rf /tmp/${filebrowser_upload_db}
-		mv -f /tmp/upload/${filebrowser_upload_db} ${dbfile_new}
+		mv -f /tmp/upload/${filebrowser_upload_db} ${dbfile_save}
 		if [ "${filebrowser_enable}" == "1" ]; then
 			start_fb
 		fi
@@ -313,12 +366,22 @@ download_database(){
 	ln -sf /tmp/files /koolshare/webs/files
 	
 	tmp_path=/tmp/files
-	
-	cp -rf ${dbfile_new} /tmp/files/filebrowser.db
+
+	if [ -f "${dbfile_curr}" ];then
+		cp -rf ${dbfile_curr} /tmp/files/filebrowser.db
+	else
+		if [ -f "${dbfile_save}" ];then
+			cp -rf ${dbfile_save} /tmp/files/filebrowser.db
+		else
+			http_response "fail" >/dev/null 2>&1
+		fi
+	fi
 	
 	if [ -f /tmp/files/filebrowser.db ]; then
 		echo_date "文件已复制"
 		http_response "$ID" >/dev/null 2>&1
+		sleep 3
+		rm -rf /tmp/files/filebrowser.db
 	else
 		http_response "fail" >/dev/null 2>&1
 		echo_date "文件复制失败"
@@ -351,6 +414,9 @@ start_nat)
 		close_port
 		open_port
 	fi
+	;;
+backup)
+	start_backup
 	;;
 stop)
 	close_fb
