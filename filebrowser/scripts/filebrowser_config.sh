@@ -86,7 +86,7 @@ check_memory(){
 				echo_date "❌️插件启动异常！"
 				echo_date "❌️检测到系统内存为：${memory_size}KB，需挂载虚拟内存！"
 				echo_date "❌️filebrowser程序对路由器开销较大，需要挂载1G及以上虚拟内存后重新启动插件！"
-				stop_process
+				close_fb_process
 				dbus set filebrowser_memory_error=1
 				dbus set filebrowser_enable=0
 				exit
