@@ -30,7 +30,7 @@ number_test(){
 		''|*[!0-9]*)
 			echo 1
 			;;
-		*) 
+		*)
 			echo 0
 			;;
 	esac
@@ -50,6 +50,81 @@ detect_running_status(){
 		fi
 	done
 	echo_date "🟢$1启动成功，pid：${PID}"
+}
+
+check_usb2jffs_used_status(){
+	# 查看当前/jffs的挂载点是什么设备，如/dev/mtdblock9, /dev/sda1；有usb2jffs的时候，/dev/sda1，无usb2jffs的时候，/dev/mtdblock9，出问题未正确挂载的时候，为空
+	local cur_patition=$(df -h | /bin/grep /jffs | awk '{print $1}')
+	local jffs_device="not mount"
+	if [ -n "${cur_patition}" ];then
+  		jffs_device=${cur_patition}
+  fi
+	local mounted_nu=$(mount | /bin/grep "${jffs_device}" | grep -E "/tmp/mnt/|/jffs"|/bin/grep -c "/dev/s")
+	if [ "${mounted_nu}" -eq "2" ]; then
+    echo "1" #已安装并成功挂载
+  else
+  	echo "0" #未安装或未挂载
+  fi
+}
+
+write_backup_job(){
+	sed -i '/filebrowser_backupdb/d' /var/spool/cron/crontabs/* >/dev/null 2>&1
+	echo_date "ℹ️创建数据库备份任务" >> $LOG_FILE
+	cru a filebrowser_backupdb  "*/1 * * * * /bin/sh /koolshare/scripts/filebrowser_config.sh backup"
+}
+
+kill_cron_job() {
+	if [ -n "$(cru l | grep filebrowser_backupdb)" ]; then
+		echo_date "ℹ️删除filebrowser数据库备份任务..."
+		sed -i '/filebrowser_backupdb/d' /var/spool/cron/crontabs/* >/dev/null 2>&1
+	fi
+}
+
+restore_used_db(){
+	# sync db
+	if [ -f "${dbfile_curr}" ];then
+		cp -rf ${dbfile_curr} ${dbfile_save}
+    echo_date "⚠️ 复制FileBrowser数据库至备份目录！"
+		if [ "$?" == "0" ];then
+			rm -rf /tmp/fb
+		fi
+	fi
+  kill_cron_job
+}
+
+check_run_mode(){
+  if [ $(check_usb2jffs_used_status) == "1" ] && [ ${1} == "start" ];then
+      echo_date "➡️检测到已安装插件usb2jffs并成功挂载，插件可以正常启动！"
+      restore_used_db
+  fi
+}
+
+checkDbFilePath() {
+  local ACT=${1}
+  check_run_mode ${ACT}
+	#检查db运行目录是放在/tmp还是/koolshare
+	if [ "${ACT}" = "start" ];then
+	  if [ $(check_usb2jffs_used_status) != "1" ]; then #未挂载usb2jffs就检测是否需要运行在/tmp目录
+      local configRunTmp='0'
+      local LINUX_VER=$(uname -r|awk -F"." '{print $1$2}')
+      if [ "$LINUX_VER" = 41 ]; then #内核过低就运行在Tmp目录
+        echo_date "⚠️检测到内核版本过低，设置FileBrowser为Tmp目录模式！"
+        configRunTmp="1"
+      fi
+      if [ ${configRunTmp} == "1" ]; then
+	      export FB_DATABASE=${dbfile_curr}
+        echo_date "⚠️[Tmp目录模式] FileBrowser将运行在/tmp目录！"
+        echo_date "⚠️安装usb2jffs插件并成功挂载可恢复正常运行模式！"
+        if [ -f "${dbfile_save}" ];then
+          echo_date "➡️[Tmp目录模式] 复制FileBrowser数据库至使用目录！"
+        	cp -rf ${dbfile_save} ${dbfile_curr}
+        fi
+        write_backup_job
+      fi
+    fi
+  else
+    restore_used_db
+	fi
 }
 
 check_status(){
@@ -110,16 +185,9 @@ close_fb_process(){
 		rm -rf /koolshare/perp/filebrowser
 		killall filebrowser >/dev/null 2>&1
 		kill -9 "${fb_process}" >/dev/null 2>&1
-		kill_cron_job
 	fi
-
-	# sync db
-	if [ -f "${dbfile_curr}" ];then
-		cp -rf ${dbfile_curr} ${dbfile_save}
-		if [ "$?" == "0" ];then
-			rm -rf /tmp/fb
-		fi
-	fi
+  # check is  run in /tmp dir
+  checkDbFilePath stop
 }
 
 start_fb_process(){
@@ -137,11 +205,11 @@ start_fb_process(){
 			export FB_CERT=${FB_CERT}
 			export FB_KEY=${FB_KEY}
 			export FB_LOG=${FB_LOG}
-			if test \${1} = 'start' ; then 
+			if test \${1} = 'start' ; then
 				exec filebrowser
 			fi
 			exit 0
-			
+
 		EOF
 		chmod +x /koolshare/perp/filebrowser/rc.main
 		chmod +t /koolshare/perp/filebrowser/
@@ -166,13 +234,12 @@ check_config(){
 	dbfile_save=/koolshare/configs/filebrowser/filebrowser.db
 	dbfile_curr=/tmp/fb/filebrowser.db
 
-	if [ -f "${dbfile_save}" ];then
-		cp -rf ${dbfile_save} ${dbfile_curr}
-	fi
-
+	export FB_DATABASE=${dbfile_save}
 	export FB_ROOT="/"
-	export FB_DATABASE=${dbfile_curr}
 	export FB_LOG=${FB_LOG_FILE}
+
+	#check is need run in /tmp dir
+  checkDbFilePath start
 
 	if [ $(number_test ${filebrowser_port}) != "0" ]; then
 		export FB_PORT=26789
@@ -255,7 +322,7 @@ open_port() {
 		echo_date "ℹ️加载xt_comment.ko内核模块！"
 		insmod /lib/modules/${OS}/kernel/net/netfilter/xt_comment.ko
 	fi
-	
+
 	local MATCH=$(iptables -t filter -S INPUT | grep "fb_rule")
 	if [ -z "${MATCH}" ];then
 		echo_date "🧱添加防火墙入站规则，打开filebrowser端口：${FB_PORT}"
@@ -274,19 +341,6 @@ close_port(){
 	fi
 }
 
-write_backup_job(){
-	sed -i '/filebrowser_backupdb/d' /var/spool/cron/crontabs/* >/dev/null 2>&1
-	echo_date "ℹ️创建数据库备份任务" >> $LOG_FILE
-	cru a filebrowser_backupdb  "*/1 * * * * /bin/sh /koolshare/scripts/filebrowser_config.sh backup"
-}
-
-kill_cron_job() {
-	if [ -n "$(cru l | grep filebrowser_backupdb)" ]; then
-		echo_date "ℹ️删除filebrowser数据库备份任务..."
-		sed -i '/filebrowser_backupdb/d' /var/spool/cron/crontabs/* >/dev/null 2>&1
-	fi
-}
-
 start_backup(){
 	mkdir -p /koolshare/configs/
 	if [ -f "${dbfile_curr}" ]; then
@@ -295,7 +349,7 @@ start_backup(){
 		    logger "[${0##*/}]：备份filebrowser数据库!"
 		else
 			local new=$(md5sum ${dbfile_curr} | awk '{print $1}')
-			local old=$(md5sum ${dbfile_save} | awk '{print $1}') 
+			local old=$(md5sum ${dbfile_save} | awk '{print $1}')
 			if [ "${new}" != "${old}" ] ; then
 			    cp -rf ${dbfile_curr} ${dbfile_save}
 			    logger "[${0##*/}]：filebrowser 数据库变化，备份数据库!"
@@ -307,14 +361,11 @@ start_backup(){
 close_fb(){
 	# 1. remove log
 	rf -rf ${FB_LOG_FILE}
-	
+
 	# 2. stop fb
 	close_fb_process
 
-	# 3. kill_cron_job
-	kill_cron_job
-
-	# 4. close_port
+	# 3. close_port
 	close_port
 }
 
@@ -330,9 +381,6 @@ start_fb (){
 
 	# 4. start process
 	start_fb_process
-
-	# 5. sync db by crontab
-	write_backup_job
 
 	# 5. open port
 	if [ "${filebrowser_publicswitch}" == "1" ];then
@@ -355,7 +403,7 @@ upload_database(){
 	else
 		echo_date "❌没找到数据库文件，不执行任何操作!"
 		rm -rf /tmp/upload/*.db
-	fi	
+	fi
 }
 
 download_database(){
@@ -364,7 +412,7 @@ download_database(){
 	rm -rf /koolshare/webs/files
 	mkdir -p /tmp/files
 	ln -sf /tmp/files /koolshare/webs/files
-	
+
 	tmp_path=/tmp/files
 
 	if [ -f "${dbfile_curr}" ];then
@@ -376,7 +424,7 @@ download_database(){
 			http_response "fail" >/dev/null 2>&1
 		fi
 	fi
-	
+
 	if [ -f /tmp/files/filebrowser.db ]; then
 		echo_date "文件已复制"
 		http_response "$ID" >/dev/null 2>&1

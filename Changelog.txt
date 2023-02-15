@@ -1,5 +1,8 @@
 KoolCenter FileBrower Changelog for HND platform
 ===========================================
+2.0.3
+   - update	优化filebrower在特定机型或挂载usb2jffs，无需在/tmp目录下
+
 2.0.2
    - fix	修复filebrower在某些机型，如RT-AC86U上无法运行的问题
 
