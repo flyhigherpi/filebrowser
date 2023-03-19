@@ -182,6 +182,7 @@ function pannel_access(){
 
 		var hostname = document.domain;
 		if (hostname.indexOf('.kooldns.cn') != -1 || hostname.indexOf('.ddnsto.com') != -1 || hostname.indexOf('.tocmcc.cn') != -1) {
+			protocol = location.protocol;//如果是走的ddnsto则不管是否开启公网开关。
 			if(hostname.indexOf('.kooldns.cn') != -1){
 				hostname = hostname.replace('.kooldns.cn','-fb.kooldns.cn');
 			}else if(hostname.indexOf('.ddnsto.com') != -1){
@@ -694,4 +695,3 @@ function upload_data(dbname) {
 	<div id="footer"></div>
 </body>
 </html>
-
