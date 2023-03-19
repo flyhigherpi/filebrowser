@@ -1,5 +1,7 @@
 KoolCenter FileBrower Changelog for HND platform
 ===========================================
+2.0.4
+   - fix	DDNSTO链接协议总识别为http的问题
 2.0.3
    - update	优化filebrower在特定机型或挂载usb2jffs，无需在/tmp目录下
 
