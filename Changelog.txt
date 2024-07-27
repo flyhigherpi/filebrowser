@@ -1,5 +1,8 @@
 KoolCenter FileBrower Changelog for HND platform
 ===========================================
+2.0.5
+   - update	支持102固件
+
 2.0.4
    - fix	DDNSTO链接协议总识别为http的问题
 2.0.3
