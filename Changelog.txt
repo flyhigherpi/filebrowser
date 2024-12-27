@@ -1,5 +1,9 @@
 KoolCenter FileBrower Changelog for HND platform
 ===========================================
+2.1.0
+   - fix	102.3006固件web页面兼容问题
+   - update	更新filebrower 二进制程序到 v2.31.2
+
 2.0.6
    - update	更新filebrower 二进制程序到 v2.30.0
 
