@@ -1,5 +1,8 @@
 KoolCenter FileBrower Changelog for HND platform
 ===========================================
+2.1.2
+   - update	更新filebrower 二进制程序到 v2.33.6
+
 2.1.1
    - update	更新filebrower 二进制程序到 v2.32.0
 
