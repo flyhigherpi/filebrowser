@@ -7,5 +7,5 @@
     "module": "filebrowser", 
     "tags": "USB", 
     "title": "FileBrowser", 
-    "version": "2.1.2"
+    "version": "2.2.0"
 }

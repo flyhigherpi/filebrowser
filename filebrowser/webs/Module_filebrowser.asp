@@ -182,10 +182,14 @@ function pannel_access(){
 		}
 
 		var hostname = document.domain;
-		if (hostname.indexOf('.kooldns.cn') != -1 || hostname.indexOf('.ddnsto.com') != -1 || hostname.indexOf('.tocmcc.cn') != -1) {
+		if (hostname.indexOf('.kooldns.cn') != -1 || hostname.indexOf('.x.ddnsto.com') != -1 || hostname.indexOf('.gd.ddnsto.com') != -1 || hostname.indexOf('.ddnsto.com') != -1 || hostname.indexOf('.tocmcc.cn') != -1) {
 			protocol = location.protocol;//如果是走的ddnsto则不管是否开启公网开关。
 			if(hostname.indexOf('.kooldns.cn') != -1){
 				hostname = hostname.replace('.kooldns.cn','-fb.kooldns.cn');
+			}else if(hostname.indexOf('.x.ddnsto.com') != -1){
+				hostname = hostname.replace('.x.ddnsto.com','-fb.x.ddnsto.com');
+			}else if(hostname.indexOf('.gd.ddnsto.com') != -1){
+				hostname = hostname.replace('.gd.ddnsto.com','-fb.gd.ddnsto.com');
 			}else if(hostname.indexOf('.ddnsto.com') != -1){
 				hostname = hostname.replace('.ddnsto.com','-fb.ddnsto.com');
 			}else{

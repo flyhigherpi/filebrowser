@@ -1,5 +1,9 @@
 KoolCenter FileBrower Changelog for HND platform
 ===========================================
+2.2.0
+   - update	更新filebrower 二进制程序到 v2.42.5
+   - fix    支持新增的ddnsto域名
+
 2.1.2
    - update	更新filebrower 二进制程序到 v2.33.6
 
